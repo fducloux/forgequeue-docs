@@ -10,11 +10,10 @@ GitHub repo linked to forgeQueue, it builds and signs the app, and pushes
 the compiled artifact back into the same repo.
 
 - Dashboard: `https://forgequeue.8rec.com`
-- There is no REST API to integrate against. The entire integration
-  surface is **`git push`** to a specific branch, plus the web dashboard
-  for setup and status. If a task here seems to call for an API key or
-  SDK, that's a sign of confusing forgeQueue with a different service —
-  stop and re-check.
+- Triggering a build is still `git push` only. There's a small read-only
+  API for checking build status (see below) using a per-team API key —
+  everything else (onboarding, signing, triggering) is dashboard/git only,
+  no SDK.
 
 ## Onboarding a repo (one-time, via the dashboard — not scriptable)
 
@@ -70,35 +69,44 @@ triggered on pushes to `forgeQueue/builds`).
 
 ## Signing
 
-**iOS** needs a distribution certificate and a provisioning profile — two
-ways to provide them, both on the repo's Signing page:
+**iOS** needs a certificate and, separately, a provisioning profile — a
+certificate isn't tied to one app, a profile is:
 
-1. **Upload your own** — a `.p12` (+ password) exported from Keychain
-   Access, and a matching `.mobileprovision`.
-2. **Generate automatically** — save a Team API key from App Store
-   Connect (Users and Access → Integrations → Team Keys: the `.p8`, Key
-   ID, and Issuer ID) first, then click **Generate**. forgeQueue registers
-   the bundle ID, requests a certificate, and creates the profile for
-   you.
+- **Certificate** — set once, on the **team's** signing page, shared by
+  every app on the team (or upload your own there instead).
+- **Bundle ID + provisioning profile** — set on *each app's own* signing
+  page, every time, even when apps share the team's certificate. Get the
+  bundle ID right — a mismatch against the Xcode project's real
+  `PRODUCT_BUNDLE_IDENTIFIER` fails every build at the codesign step.
 
-Get the bundle ID right before generating — a provisioning profile is
-locked to one App ID, and a mismatch against the Xcode project's real
-`PRODUCT_BUNDLE_IDENTIFIER` fails every build at the codesign step. Check
-the actual value in the project rather than trusting a bundle ID recorded
-somewhere else.
+Both can be uploaded manually or generated automatically (needs a Team
+API key from App Store Connect saved on the team's signing page first —
+Users and Access → Integrations → Team Keys: the `.p8`, Key ID, Issuer
+ID).
 
-Signing can be set once as a **team default** and shared across repos, or
-overridden per repo for an app that needs its own certificate.
-
-**Android** takes a keystore, its password, and a key alias + password,
-uploaded the same way — no auto-generate flow for Android.
+**Android** takes a keystore, its password, and a key alias + password —
+one per app, uploaded manually, no auto-generate flow.
 
 ## Checking build status
 
-Dashboard only (`forgequeue.8rec.com/dashboard`) — there's no
-API-key-authenticated status endpoint for external tools to poll. It
-shows the live build log, queue position + ETA, credits charged, and an
-automatic error diagnosis on failure.
+Dashboard (`forgequeue.8rec.com/dashboard`) has the most detail: live
+build log, queue position + ETA, credits charged, automatic error
+diagnosis on failure.
+
+For scripted polling, there's a small read-only API — generate a
+per-team key on **Account → Team → API access** first:
+
+```bash
+curl https://forgequeue.8rec.com/api/public/builds \
+  -H "Authorization: Bearer fq_live_..."
+
+curl https://forgequeue.8rec.com/api/public/builds/<build-id> \
+  -H "Authorization: Bearer fq_live_..."
+```
+
+The list is newest-first, filterable with `?repoId=`/`?platform=`/
+`?status=`, paged with `?limit=` (max 100) and `?cursor=`. It omits the
+log to stay light — fetch the single build for that.
 
 ## Billing
 

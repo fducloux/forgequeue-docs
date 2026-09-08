@@ -29,24 +29,22 @@ that path too.
 
 ## 3. Set up code signing
 
-**iOS** needs a distribution certificate and a provisioning profile.
-Two ways to provide them:
+**iOS** needs a certificate and, separately, a provisioning profile — a
+certificate isn't tied to any one app, but a profile is:
 
-- **Upload your own** — export a `.p12` from Keychain Access (with its
-  password) and download a matching `.mobileprovision` from Apple
-  Developer, then upload both on the repo's Signing page.
-- **Let forgeQueue generate them for you** — save a Team API key from App
-  Store Connect (Users and Access → Integrations → Team Keys: download the
-  `.p8`, note the Key ID and Issuer ID), then click **Generate**. forgeQueue
-  registers the bundle ID, requests a certificate, and creates a
-  provisioning profile automatically — no manual export needed.
-
-If you manage multiple apps under one team, you can save signing once as
-your **team default** and only override it per-repo for apps that need
-their own certificate.
+- **Certificate** — set once on your **team's** Signing page. Every app on
+  the team can share it. Upload a `.p12` (+ its password) from Keychain
+  Access, or save a Team API key from App Store Connect (Users and Access
+  → Integrations → Team Keys: the `.p8`, Key ID, Issuer ID) and click
+  **Generate** instead.
+- **Bundle ID + provisioning profile** — set on **each app's own** Signing
+  page, every time, even when several apps share the team's certificate.
+  Upload a `.mobileprovision`, or generate one there once the certificate
+  exists.
 
 **Android** needs your signing keystore, its password, and your key alias
-+ password — uploaded the same way on the repo's Android Signing page.
++ password — one per app, uploaded on that app's Android Signing page (no
+auto-generate for Android).
 
 ## 4. Trigger a build
 
@@ -74,6 +72,25 @@ When it finishes successfully, the signed `.ipa` or `.aab` is pushed back
 into your own repo, on a dedicated branch: **`forgeQueue/builds`**, under
 `forgequeue-builds/<build-id>/`. It's never pushed onto your CI branch, so
 grabbing a build never triggers another one.
+
+## Checking build status from a script
+
+For polling outside the dashboard — a CI job, a bot, your own tooling —
+generate a per-team API key on **Account → Team → API access** (shown
+once at creation; losing it means rotating, not recovering it):
+
+```bash
+curl https://forgequeue.8rec.com/api/public/builds \
+  -H "Authorization: Bearer fq_live_..."
+
+curl https://forgequeue.8rec.com/api/public/builds/<build-id> \
+  -H "Authorization: Bearer fq_live_..."
+```
+
+The list is newest-first and filterable with `?repoId=`, `?platform=`,
+`?status=`; page through it with `?limit=` (default 20, max 100) and
+`?cursor=` (from the previous response's `nextCursor`). List rows skip
+the log to stay light — fetch the single build for that.
 
 ## Billing
 
