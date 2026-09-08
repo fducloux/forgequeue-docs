@@ -45,8 +45,13 @@ Push to the repo's configured CI branch. That's the whole trigger:
 git push origin forgeQueue/ci-release
 ```
 
-A push to any other branch is ignored. One push can produce **up to two
-builds** — one per enabled platform — each billed separately.
+A push to any other branch is ignored. By default one push produces **up
+to two builds** — one per enabled platform — each billed separately, both
+triggered off the same CI branch.
+
+To trigger iOS and Android independently instead, set a separate branch
+per platform on the repo's Platforms settings — pushing one only builds
+that platform.
 
 **Never push forgeQueue's own build output back onto the CI branch** —
 that would re-trigger a build on every successful build, an infinite
