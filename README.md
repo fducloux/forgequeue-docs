@@ -92,6 +92,28 @@ The list is newest-first and filterable with `?repoId=`, `?platform=`,
 `?cursor=` (from the previous response's `nextCursor`). List rows skip
 the log to stay light — fetch the single build for that.
 
+The same key also manages env vars and gitignored config files
+end-to-end:
+
+```bash
+curl -X PUT https://forgequeue.8rec.com/api/public/repos/<repo-id>/env \
+  -H "Authorization: Bearer fq_live_..." -H "Content-Type: application/json" \
+  -d '{"dotenv": "NEXT_PUBLIC_API_URL=https://api.example.com"}'
+
+curl -X PUT https://forgequeue.8rec.com/api/public/repos/<repo-id>/env/files \
+  -H "Authorization: Bearer fq_live_..." \
+  -F "targetPath=ios/App/App/GoogleService-Info.plist" \
+  -F "file=@./GoogleService-Info.plist"
+```
+
+## Gitignored config files (GoogleService-Info.plist, google-services.json, ...)
+
+For files a build needs at a specific path but that are correctly kept
+out of git because they're credential-like. On the repo's **Env** page,
+a second form lets you upload one and give the path it needs to land at,
+relative to the repo root — written into the checkout before any build
+step runs.
+
 ## Billing
 
 Builds are charged in credits based on build time, whether they succeed or

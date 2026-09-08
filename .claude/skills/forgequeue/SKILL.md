@@ -93,8 +93,8 @@ Dashboard (`forgequeue.8rec.com/dashboard`) has the most detail: live
 build log, queue position + ETA, credits charged, automatic error
 diagnosis on failure.
 
-For scripted polling, there's a small read-only API — generate a
-per-team key on **Account → Team → API access** first:
+For scripted access, generate a per-team key on **Account → Team → API
+access** first:
 
 ```bash
 curl https://forgequeue.8rec.com/api/public/builds \
@@ -107,6 +107,19 @@ curl https://forgequeue.8rec.com/api/public/builds/<build-id> \
 The list is newest-first, filterable with `?repoId=`/`?platform=`/
 `?status=`, paged with `?limit=` (max 100) and `?cursor=`. It omits the
 log to stay light — fetch the single build for that.
+
+The same key also manages env vars and config files (below) end to end:
+
+```bash
+curl -X PUT https://forgequeue.8rec.com/api/public/repos/<repo-id>/env \
+  -H "Authorization: Bearer fq_live_..." -H "Content-Type: application/json" \
+  -d '{"dotenv": "NEXT_PUBLIC_API_URL=https://api.example.com"}'
+
+curl -X PUT https://forgequeue.8rec.com/api/public/repos/<repo-id>/env/files \
+  -H "Authorization: Bearer fq_live_..." \
+  -F "targetPath=ios/App/App/GoogleService-Info.plist" \
+  -F "file=@./GoogleService-Info.plist"
+```
 
 ## Billing
 
@@ -123,3 +136,13 @@ it runs automatically once topped up.
   present — set build-time env vars on the repo's Env page rather than
   committing secrets.
 - **Android**: a Gradle project buildable with `bundleRelease`.
+
+## Gitignored config files (GoogleService-Info.plist, google-services.json, ...)
+
+For files a build needs at a specific path but that are correctly kept
+out of git because they're credential-like. **Dashboard → Repos →
+[repo] → Env**, second form on that page — upload the file and give the
+path it needs to land at, relative to the repo root (e.g.
+`ios/App/App/GoogleService-Info.plist`). Written into the checkout
+before any build step runs. Same page as env vars, but a separate
+upload per file — vars and files don't overwrite each other.
