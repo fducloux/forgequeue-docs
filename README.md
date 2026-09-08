@@ -106,6 +106,15 @@ curl -X PUT https://forgequeue.8rec.com/api/public/repos/<repo-id>/env/files \
   -F "file=@./GoogleService-Info.plist"
 ```
 
+And the same key files issues (suggestions/feature requests — not
+disputes, those need the dashboard):
+
+```bash
+curl -X POST https://forgequeue.8rec.com/api/public/issues \
+  -H "Authorization: Bearer fq_live_..." -H "Content-Type: application/json" \
+  -d '{"type": "suggestion", "title": "...", "body": "..."}'
+```
+
 ## Gitignored config files (GoogleService-Info.plist, google-services.json, ...)
 
 For files a build needs at a specific path but that are correctly kept
